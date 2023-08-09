@@ -1,8 +1,9 @@
-import { Body, Controller, HttpStatus, Post } from '@nestjs/common';
+import { Body, Controller, HttpStatus, Post, Res } from '@nestjs/common';
 import { UserService } from './user.service';
 import { RegisterUserDto } from './register-user.dto';
 import { ResponseDto } from '../response.dto';
 import { TokenDto } from '../jwt/jwt.dto';
+import { Response } from 'express';
 
 @Controller()
 export class UserController {
@@ -11,9 +12,17 @@ export class UserController {
   @Post('/api/v1/users')
   async registerUser(
     @Body() registerUserDto: RegisterUserDto,
+    @Res({ passthrough: true }) response: Response,
   ): Promise<ResponseDto<TokenDto>> {
-    // setCookie로 바로 token 넣어주기
-    const token = this.userService.registerUser(registerUserDto);
+    const tokens = await this.userService.registerUser(registerUserDto);
+
+    response.cookie('access_token', tokens.accessToken, {
+      httpOnly: true,
+    });
+    response.cookie('refresh_token', tokens.refreshToken, {
+      httpOnly: true,
+    });
+
     return ResponseDto.createWithoutData(HttpStatus.CREATED, '회원가입 성공');
   }
 }
