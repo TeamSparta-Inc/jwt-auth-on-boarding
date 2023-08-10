@@ -1,6 +1,5 @@
 import { UserService } from './user.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { getModelToken } from '@nestjs/mongoose';
 import * as bcrypt from 'bcrypt';
 import { RegisterUserDto } from './register-user.dto';
 import {
@@ -8,11 +7,13 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { UserRepository } from './user.repository';
+import { RefreshTokenRepository } from '../jwt/jwt.repository';
 
 describe('UserService', () => {
   let userService: UserService;
-  let userModelMock;
-  let refreshTokenModelMock;
+  let userRepositoryMock;
+  let refreshTokenRepositoryMock;
 
   const userData = {
     userId: 'testId',
@@ -20,27 +21,28 @@ describe('UserService', () => {
   };
 
   beforeEach(async () => {
-    userModelMock = {
+    userRepositoryMock = {
       create: jest.fn(),
-      findOne: jest.fn(),
-      deleteOne: jest.fn(),
+      findOneByUserId: jest.fn(),
+      findById: jest.fn(),
     };
 
-    refreshTokenModelMock = {
+    refreshTokenRepositoryMock = {
       create: jest.fn(),
+      findOneByUserId: jest.fn(),
+      updateRefreshToken: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UserService,
         {
-          provide: getModelToken('User'), // Use the actual name of your User model
-          useValue: userModelMock,
+          provide: UserRepository,
+          useValue: userRepositoryMock,
         },
-        UserService,
         {
-          provide: getModelToken('RefreshToken'),
-          useValue: refreshTokenModelMock,
+          provide: RefreshTokenRepository,
+          useValue: refreshTokenRepositoryMock,
         },
       ],
     }).compile();
@@ -54,7 +56,7 @@ describe('UserService', () => {
       const userId = userData.userId;
       const hashedPassword = await bcrypt.hash(userData.password, 10);
 
-      userModelMock.create.mockResolvedValue({
+      userRepositoryMock.create.mockResolvedValue({
         userId: userId,
         password: hashedPassword,
       });
@@ -63,7 +65,6 @@ describe('UserService', () => {
       //then
       console.log(result);
       expect(result).toBeDefined();
-      await userModelMock.deleteOne({ userId: userData.userId });
     });
 
     test('이미 존재하는 아이디가 아닐 경우, 회원가입이 잘 되는지 테스트', async () => {
@@ -71,8 +72,8 @@ describe('UserService', () => {
       const userId = userData.userId;
       const hashedPassword = await bcrypt.hash(userData.password, 10);
 
-      userModelMock.findOne.mockResolvedValue(null);
-      userModelMock.create.mockResolvedValue({
+      userRepositoryMock.findOneByUserId.mockResolvedValue(null);
+      userRepositoryMock.create.mockResolvedValue({
         userId: userId,
         password: hashedPassword,
       });
@@ -84,14 +85,12 @@ describe('UserService', () => {
       console.log(result);
 
       //then
-      userModelMock.findOne.mockResolvedValue({
+      userRepositoryMock.findOneByUserId.mockResolvedValue({
         userId: userId,
         password: hashedPassword,
       });
 
-      const storedUser = await userModelMock.findOne({
-        userId: userId,
-      });
+      const storedUser = await userRepositoryMock.findOneByUserId(userId);
 
       console.log(storedUser);
 
@@ -103,11 +102,11 @@ describe('UserService', () => {
       const userId = userData.userId;
       const hashedPassword = await bcrypt.hash(userData.password, 10);
 
-      userModelMock.findOne.mockResolvedValue({
+      userRepositoryMock.findOneByUserId.mockResolvedValue({
         userId: userId,
         password: hashedPassword,
       });
-      userModelMock.create.mockResolvedValue({
+      userRepositoryMock.create.mockResolvedValue({
         userId: userId,
         password: hashedPassword,
       });
@@ -127,7 +126,7 @@ describe('UserService', () => {
       const userId = userData.userId;
       const hashedPassword = await bcrypt.hash(userData.password, 10);
 
-      userModelMock.findOne.mockResolvedValue({
+      userRepositoryMock.findOneByUserId.mockResolvedValue({
         userId: userId,
         password: hashedPassword,
       });
@@ -141,7 +140,7 @@ describe('UserService', () => {
 
     test('올바르지 않은 아이디를 입력했을 경우, 예외가 잘 발생하는지 테스트', async () => {
       //given
-      userModelMock.findOne.mockResolvedValue(null);
+      userRepositoryMock.findOneByUserId.mockResolvedValue(null);
       //when
       //then
       await expect(async () => {
@@ -156,7 +155,7 @@ describe('UserService', () => {
       const userId = userData.userId;
       const hashedPassword = await bcrypt.hash(userData.password, 10);
 
-      userModelMock.findOne.mockResolvedValue({
+      userRepositoryMock.findOneByUserId.mockResolvedValue({
         userId: userId,
         password: hashedPassword,
       });

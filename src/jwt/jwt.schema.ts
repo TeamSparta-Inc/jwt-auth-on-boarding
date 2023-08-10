@@ -8,9 +8,6 @@ export class RefreshToken extends Document {
 
   @Prop()
   userId: string;
-
-  @Prop({ default: Date.now })
-  createdAt: Date;
 }
 
 export const RefreshTokenSchema = SchemaFactory.createForClass(RefreshToken);
