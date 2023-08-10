@@ -4,7 +4,7 @@ import { TokenDto } from './jwt.dto';
 
 @Injectable()
 export class JwtService {
-  private readonly secretKey = 'sychaeteamspartaonboarding';
+  public readonly secretKey = 'sychaeteamspartaonboarding';
   private readonly accessTokenExpiry = 60 * 30;
   private readonly refreshTokenExpiry = 60 * 60 * 6;
 
@@ -64,5 +64,33 @@ export class JwtService {
       .replace(/=/g, '')
       .replace(/\+/g, '-')
       .replace(/\//g, '_');
+  }
+
+  verifyToken(token: string): Record<string, any> | null {
+    const [encodedHeader, encodedPayload, providedSignature] = token.split('.');
+    const decodedHeader = this.base64UrlDecode(encodedHeader);
+    const decodedPayload = this.base64UrlDecode(encodedPayload);
+
+    const expectedSignature = this.generateSignature(
+      encodedHeader,
+      encodedPayload,
+    );
+
+    if (providedSignature !== expectedSignature) {
+      return null;
+    }
+
+    const payload = JSON.parse(decodedPayload);
+    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
+      return null;
+    }
+
+    return payload;
+  }
+
+  private base64UrlDecode(value: string): string {
+    const paddingLength = (4 - (value.length % 4)) % 4;
+    const paddedValue = value + '='.repeat(paddingLength);
+    return Buffer.from(paddedValue, 'base64').toString('utf-8');
   }
 }

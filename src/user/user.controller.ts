@@ -1,16 +1,27 @@
-import { Body, Controller, HttpStatus, Post, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpStatus,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { UserService } from './user.service';
 import { RegisterUserDto } from './register-user.dto';
 import { ResponseDto } from '../response.dto';
 import { TokenDto } from '../jwt/jwt.dto';
 import { Response } from 'express';
 import { LoginUserDto } from './login-user.dto';
+import { JwtGuard } from '../jwt/jwt.guard';
+import { InfoUserDto } from './info-user.dto';
 
-@Controller()
+@Controller('/api/v1/users')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  @Post('/api/v1/users/signup')
+  @Post('/signup')
   async register(
     @Body() registerUserDto: RegisterUserDto,
     @Res({ passthrough: true }) response: Response,
@@ -27,7 +38,7 @@ export class UserController {
     return ResponseDto.createWithoutData(HttpStatus.CREATED, '회원가입 성공');
   }
 
-  @Post('/api/v1/users/login')
+  @Post('/login')
   async login(
     @Body() loginUserDto: LoginUserDto,
     @Res({ passthrough: true }) response: Response,
@@ -42,5 +53,15 @@ export class UserController {
     });
 
     return ResponseDto.createWithoutData(HttpStatus.OK, '로그인 성공');
+  }
+
+  @Get('/me')
+  @UseGuards(JwtGuard)
+  async getInfo(@Req() request): Promise<ResponseDto<InfoUserDto>> {
+    return new ResponseDto<InfoUserDto>(
+      HttpStatus.OK,
+      '사용자 정보 조회 성공',
+      await this.userService.getInfo(request.user.sub),
+    );
   }
 }
