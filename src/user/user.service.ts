@@ -11,6 +11,7 @@ import { TokenDto } from '../jwt/jwt.dto';
 import { JwtService } from '../jwt/jwt.service';
 import { User } from './user.schema';
 import { LoginUserDto } from './login-user.dto';
+import { InfoUserDto } from './info-user.dto';
 
 @Injectable()
 export class UserService {
@@ -35,12 +36,12 @@ export class UserService {
     }
 
     const hashedPassword = await bcrypt.hash(registerUserDto.password, 10);
-    await this.userModel.create({
+    const savedUser = await this.userModel.create({
       userId: registerUserDto.userId,
       password: hashedPassword,
     });
 
-    return this.jwtService.publishToken(registerUserDto.userId);
+    return this.jwtService.publishToken(savedUser._id);
   }
 
   async login(loginUserDto: LoginUserDto): Promise<TokenDto> {
@@ -54,6 +55,11 @@ export class UserService {
       throw new UnauthorizedException(UserService.INVALID_PASSWORD_MESSAGE);
     }
 
-    return this.jwtService.publishToken(loginUserDto.userId);
+    return this.jwtService.publishToken(user._id);
+  }
+
+  async getInfo(id: string): Promise<InfoUserDto> {
+    const user = await this.userModel.findById(id);
+    return new InfoUserDto(user.userId);
   }
 }
