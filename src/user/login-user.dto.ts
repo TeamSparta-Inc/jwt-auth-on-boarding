@@ -1,6 +1,6 @@
 import { IsNotEmpty, IsString } from 'class-validator';
 
-export class RegisterUserDto {
+export class LoginUserDto {
   @IsNotEmpty()
   @IsString()
   userId: string;
@@ -8,9 +8,4 @@ export class RegisterUserDto {
   @IsNotEmpty()
   @IsString()
   password: string;
-
-  constructor(userId: string, password: string) {
-    this.userId = userId;
-    this.password = password;
-  }
 }
