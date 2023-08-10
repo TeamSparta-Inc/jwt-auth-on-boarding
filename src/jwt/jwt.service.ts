@@ -66,7 +66,7 @@ export class JwtService {
       .replace(/\//g, '_');
   }
 
-  verifyToken(token: string): Record<string, any> | null {
+  verifyToken(token: string): string | null {
     const [encodedHeader, encodedPayload, providedSignature] = token.split('.');
     const decodedHeader = this.base64UrlDecode(encodedHeader);
     const decodedPayload = this.base64UrlDecode(encodedPayload);
@@ -80,7 +80,7 @@ export class JwtService {
       return null;
     }
 
-    const payload = JSON.parse(decodedPayload);
+    const payload = JSON.parse(decodedPayload).sub;
     if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
       return null;
     }

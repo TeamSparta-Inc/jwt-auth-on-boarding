@@ -12,6 +12,7 @@ import {
 describe('UserService', () => {
   let userService: UserService;
   let userModelMock;
+  let refreshTokenModelMock;
 
   const userData = {
     userId: 'testId',
@@ -25,12 +26,21 @@ describe('UserService', () => {
       deleteOne: jest.fn(),
     };
 
+    refreshTokenModelMock = {
+      create: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UserService,
         {
           provide: getModelToken('User'), // Use the actual name of your User model
           useValue: userModelMock,
+        },
+        UserService,
+        {
+          provide: getModelToken('RefreshToken'),
+          useValue: refreshTokenModelMock,
         },
       ],
     }).compile();
@@ -74,7 +84,6 @@ describe('UserService', () => {
       console.log(result);
 
       //then
-      /* TODO: JWT 발급과 사용자 회원가입 메서드 분리해서 테스트 따로 만들기 */
       userModelMock.findOne.mockResolvedValue({
         userId: userId,
         password: hashedPassword,
