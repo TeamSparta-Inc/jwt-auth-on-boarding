@@ -4,15 +4,13 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
 import * as bcrypt from 'bcrypt';
 import { TokenDto } from '../jwt/jwt.dto';
 import { JwtService } from '../jwt/jwt.service';
-import { User } from './user.schema';
 import { LoginUserDto } from './login-user.dto';
 import { InfoUserDto } from './info-user.dto';
-import { RefreshToken } from '../jwt/jwt.schema';
+import { UserRepository } from './user.repository';
+import { RefreshTokenRepository } from '../jwt/jwt.repository';
 
 @Injectable()
 export class UserService {
@@ -26,40 +24,38 @@ export class UserService {
   jwtService = new JwtService();
 
   constructor(
-    @InjectModel(User.name) private userModel: Model<User>,
-    @InjectModel(RefreshToken.name)
-    private refreshTokenModel: Model<RefreshToken>,
+    private readonly userRepository: UserRepository,
+    private readonly refreshTokenRepository: RefreshTokenRepository,
   ) {}
 
   async register(registerUserDto: {
     password: string;
     userId: string;
   }): Promise<TokenDto> {
-    const user = await this.userModel.findOne({
-      userId: registerUserDto.userId,
-    });
+    const user = await this.userRepository.findOneByUserId(
+      registerUserDto.userId,
+    );
     if (user) {
       throw new BadRequestException(UserService.DUPLICATED_ID_MESSAGE);
     }
 
     const hashedPassword = await bcrypt.hash(registerUserDto.password, 10);
-    const savedUser = await this.userModel.create({
+    const savedUser = await this.userRepository.create({
       userId: registerUserDto.userId,
       password: hashedPassword,
     });
 
     const tokens = this.jwtService.publishToken(savedUser._id);
-    await this.refreshTokenModel.create({
+    await this.refreshTokenRepository.create({
       refreshToken: tokens.refreshToken,
       userId: savedUser._id,
-      createdAt: Date.now(),
     });
 
     return tokens;
   }
 
   async login(loginUserDto: LoginUserDto): Promise<TokenDto> {
-    const user = await this.userModel.findOne({ userId: loginUserDto.userId });
+    const user = await this.userRepository.findOneByUserId(loginUserDto.userId);
 
     if (!user) {
       throw new NotFoundException(UserService.INVALID_ID_MESSAGE);
@@ -74,9 +70,9 @@ export class UserService {
 
   async refresh(refreshToken: string): Promise<TokenDto> {
     const userId = this.jwtService.verifyToken(refreshToken);
-    const existsToken = await this.refreshTokenModel.findOne({
-      userId: userId,
-    });
+    const existsToken = await this.refreshTokenRepository.findOneByUserId(
+      userId,
+    );
 
     if (!existsToken || existsToken.refreshToken !== refreshToken) {
       throw new UnauthorizedException(
@@ -85,17 +81,16 @@ export class UserService {
     }
     const tokens = this.jwtService.publishToken(userId);
 
-    await this.refreshTokenModel.updateOne({
+    await this.refreshTokenRepository.updateRefreshToken({
       userId: userId,
       refreshToken: tokens.refreshToken,
-      createdAt: Date.now(),
     });
 
     return tokens;
   }
 
   async getInfo(id: string): Promise<InfoUserDto> {
-    const user = await this.userModel.findById(id);
+    const user = await this.userRepository.findById(id);
     return new InfoUserDto(user.userId);
   }
 }
