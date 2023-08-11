@@ -50,9 +50,9 @@ export class JwtService {
   private base64UrlEncode(value: string): string {
     return Buffer.from(value)
       .toString('base64')
-      .replace(/=/g, '')
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_');
+      .replaceAll(/=/g, '')
+      .replaceAll(/\+/g, '-')
+      .replaceAll(/\//g, '_');
   }
 
   private generateSignature(header: string, payload: string): string {
@@ -61,9 +61,9 @@ export class JwtService {
     hmac.update(signatureInput);
     return hmac
       .digest('base64')
-      .replace(/=/g, '')
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_');
+      .replaceAll(/=/g, '')
+      .replaceAll(/\+/g, '-')
+      .replaceAll(/\//g, '_');
   }
 
   verifyToken(token: string): string | null {
