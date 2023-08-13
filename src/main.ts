@@ -7,6 +7,10 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.useGlobalFilters(new GlobalExceptionFilter());
 
+  app.enableCors({
+    origin: true,
+  });
+
   const config = new DocumentBuilder()
     .addBearerAuth()
     .setTitle('Sparta Onboarding - sy.chae')
