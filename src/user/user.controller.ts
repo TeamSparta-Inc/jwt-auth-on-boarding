@@ -6,14 +6,12 @@ import {
   HttpStatus,
   Post,
   Req,
-  Res,
   UseGuards,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { RegisterUserDto } from './register-user.dto';
 import { ResponseDto } from '../response.dto';
 import { TokenDto } from '../jwt/jwt.dto';
-import { Response } from 'express';
 import { LoginUserDto } from './login-user.dto';
 import { JwtGuard } from '../jwt/jwt.guard';
 import { InfoUserDto } from './info-user.dto';
@@ -35,19 +33,14 @@ export class UserController {
   })
   async register(
     @Body() registerUserDto: RegisterUserDto,
-    @Res({ passthrough: true })
-    response: Response,
   ): Promise<ResponseDto<TokenDto>> {
     const tokens = await this.userService.register(registerUserDto);
 
-    response.cookie('access_token', tokens.accessToken, {
-      httpOnly: true,
-    });
-    response.cookie('refresh_token', tokens.refreshToken, {
-      httpOnly: true,
-    });
-
-    return ResponseDto.createWithoutData(HttpStatus.CREATED, '회원가입 성공');
+    return new ResponseDto<TokenDto>(
+      HttpStatus.CREATED,
+      '회원가입 성공',
+      tokens,
+    );
   }
 
   @Post('/login')
@@ -61,18 +54,10 @@ export class UserController {
   })
   async login(
     @Body() loginUserDto: LoginUserDto,
-    @Res({ passthrough: true }) response: Response,
   ): Promise<ResponseDto<TokenDto>> {
     const tokens = await this.userService.login(loginUserDto);
 
-    response.cookie('access_token', tokens.accessToken, {
-      httpOnly: true,
-    });
-    response.cookie('refresh_token', tokens.refreshToken, {
-      httpOnly: true,
-    });
-
-    return ResponseDto.createWithoutData(HttpStatus.OK, '로그인 성공');
+    return new ResponseDto<TokenDto>(HttpStatus.OK, '로그인 성공', tokens);
   }
 
   @Post('/refresh')
@@ -83,17 +68,10 @@ export class UserController {
   })
   async refreshToken(
     @Headers('x-sparta-refresh-token') refreshToken: string,
-    @Res({ passthrough: true }) response: Response,
   ): Promise<ResponseDto<TokenDto>> {
     const tokens = await this.userService.refresh(refreshToken);
 
-    response.cookie('access_token', tokens.accessToken, {
-      httpOnly: true,
-    });
-    response.cookie('refresh_token', tokens.refreshToken, {
-      httpOnly: true,
-    });
-    return ResponseDto.createWithoutData(HttpStatus.CREATED, '토큰 갱신 성공');
+    return new ResponseDto<TokenDto>(HttpStatus.OK, '토큰 갱신 성공', tokens);
   }
 
   @Get('/me')
